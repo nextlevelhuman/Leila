@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEILA — Your Personal AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
+<style>
+  :root {
+    --arc: #cc88ff;
+    --arc-dim: #8844bb;
+    --arc-glow: rgba(200,120,255,0.25);
+    --gold: #ff88cc;
+    --bg: #08050f;
+    --panel: rgba(30,10,50,0.88);
+    --border: rgba(180,100,255,0.2);
+    --text: #e0c8ff;
+    --green: #cc88ff;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); font-family:'Share Tech Mono',monospace; color:var(--arc); height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+  body::before { content:''; position:fixed; inset:0; background: linear-gradient(rgba(180,100,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(180,100,255,0.025) 1px, transparent 1px); background-size:44px 44px; pointer-events:none; z-index:0; }
+  body::after { content:''; position:fixed; inset:0; background:radial-gradient(ellipse 80% 60% at 50% 50%, rgba(80,20,120,0.2) 0%, transparent 70%); pointer-events:none; z-index:0; }
+  .corner { position:fixed; width:50px; height:50px; z-index:5; pointer-events:none; }
+  .corner.tl{top:0;left:0;border-top:2px solid var(--arc);border-left:2px solid var(--arc)}
+  .corner.tr{top:0;right:0;border-top:2px solid var(--arc);border-right:2px solid var(--arc)}
+  .corner.bl{bottom:0;left:0;border-bottom:2px solid var(--arc);border-left:2px solid var(--arc)}
+  .corner.br{bottom:0;right:0;border-bottom:2px solid var(--arc);border-right:2px solid var(--arc)}
+  .header { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:10px 22px; border-bottom:1px solid var(--border); background:linear-gradient(180deg,rgba(30,5,55,0.95) 0%,transparent 100%); flex-shrink:0; }
+  .logo-title { font-family:'Orbitron',sans-serif; font-size:24px; font-weight:900; letter-spacing:10px; text-shadow:0 0 20px var(--arc),0 0 40px var(--arc-glow); animation:pulse 3s ease-in-out infinite; }
+  .logo-sub { font-size:8px; letter-spacing:3px; color:var(--arc-dim); opacity:0.7; margin-top:2px; }
+  @keyframes pulse { 0%,100%{text-shadow:0 0 15px var(--arc)} 50%{text-shadow:0 0 35px var(--arc),0 0 70px var(--arc-glow)} }
+  .header-right { display:flex; align-items:center; gap:16px; }
+  .stat-box { display:flex; flex-direction:column; align-items:center; gap:2px; font-size:9px; letter-spacing:1px; color:var(--arc-dim); }
+  .stat-val { font-family:'Orbitron',sans-serif; font-size:12px; color:var(--arc); }
+  .online-dot { width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); animation:blink 2s ease-in-out infinite; }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+  .leila-ring { position:relative; width:52px; height:52px; flex-shrink:0; }
+  .leila-ring .outer { position:absolute; inset:0; border-radius:50%; border:1.5px dashed rgba(180,100,255,0.5); animation:spin 10s linear infinite; }
+  .leila-ring .inner { position:absolute; inset:8px; border-radius:50%; border:1.5px solid rgba(220,150,255,0.7); animation:spin 5s linear infinite reverse; }
+  .leila-ring .core { position:absolute; inset:18px; border-radius:50%; background:radial-gradient(circle, rgba(200,120,255,0.5), rgba(120,50,200,0.2)); box-shadow:0 0 12px var(--arc-glow); }
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  .main { position:relative; z-index:10; flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .chat-area { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:14px; scrollbar-width:thin; scrollbar-color:var(--arc-dim) transparent; scroll-behavior:smooth; }
+  .chat-area::-webkit-scrollbar{width:2px}
+  .chat-area::-webkit-scrollbar-thumb{background:var(--arc-dim)}
+  .msg { display:flex; gap:10px; align-items:flex-start; animation:msgIn 0.35s ease-out; }
+  .msg.user { flex-direction:row-reverse; }
+  @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; flex-shrink:0; border:1px solid var(--border); }
+  .msg.leila .avatar { background:linear-gradient(135deg,rgba(80,20,130,0.9),rgba(40,10,80,0.9)); color:var(--arc); border-color:var(--arc-dim); box-shadow:0 0 12px var(--arc-glow); }
+  .msg.user .avatar { background:rgba(255,100,180,0.1); color:var(--gold); border-color:rgba(255,100,180,0.3); }
+  .bubble { max-width:78%; padding:11px 16px; border-radius:8px; line-height:1.75; font-size:13.5px; position:relative; }
+  .msg.leila .bubble { background:linear-gradient(135deg,rgba(40,10,80,0.9),rgba(20,5,50,0.9)); border:1px solid var(--border); border-left:2px solid var(--arc); color:var(--text); }
+  .msg.user .bubble { background:rgba(255,80,150,0.07); border:1px solid rgba(255,100,180,0.2); border-right:2px solid var(--gold); color:rgba(255,220,240,0.9); text-align:right; }
+  .bubble-label { font-size:8px; letter-spacing:2px; margin-bottom:5px; font-family:'Orbitron',sans-serif; }
+  .msg.leila .bubble-label{color:var(--arc-dim)}
+  .msg.user .bubble-label{color:rgba(255,100,180,0.5);text-align:right}
+  .typing{display:flex;gap:5px;padding:6px 2px;align-items:center}
+  .typing span{width:7px;height:7px;border-radius:50%;background:var(--arc);box-shadow:0 0 6px var(--arc);animation:tdot 1.2s ease-in-out infinite}
+  .typing span:nth-child(2){animation-delay:0.2s}
+  .typing span:nth-child(3){animation-delay:0.4s}
+  @keyframes tdot{0%,60%,100%{transform:scale(0.5);opacity:0.3}30%{transform:scale(1.2);opacity:1}}
+  .voice-section { padding:14px 20px 16px; border-top:1px solid var(--border); background:linear-gradient(0deg,rgba(5,2,15,0.97) 0%,transparent 100%); display:flex; flex-direction:column; gap:12px; flex-shrink:0; }
+  .status-bar { display:flex; align-items:center; gap:10px; font-size:10px; letter-spacing:2px; color:var(--arc-dim); text-transform:uppercase; }
+  .status-bar .sl{flex:1;height:1px;background:linear-gradient(90deg,var(--arc-dim),transparent)}
+  .status-bar .sr{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--arc-dim))}
+  .waveform { display:flex; align-items:center; justify-content:center; gap:3px; height:36px; }
+  .wave-bar { width:3px; border-radius:2px; background:var(--arc); box-shadow:0 0 4px var(--arc); height:4px; }
+  .wave-bar.active{animation:waveAnim 0.6s ease-in-out infinite}
+  .wave-bar.active:nth-child(2){animation-delay:0.1s}.wave-bar.active:nth-child(3){animation-delay:0.2s}
+  .wave-bar.active:nth-child(4){animation-delay:0.3s}.wave-bar.active:nth-child(5){animation-delay:0.15s}
+  .wave-bar.active:nth-child(6){animation-delay:0.25s}.wave-bar.active:nth-child(7){animation-delay:0.05s}
+  .wave-bar.active:nth-child(8){animation-delay:0.35s}.wave-bar.active:nth-child(9){animation-delay:0.2s}
+  @keyframes waveAnim{0%,100%{height:4px;opacity:0.5}50%{height:28px;opacity:1}}
+  .controls { display:flex; align-items:center; gap:10px; }
+  .input-wrap { flex:1; display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:3px 3px 3px 16px; transition:border-color 0.3s,box-shadow 0.3s; }
+  .input-wrap:focus-within{border-color:var(--arc);box-shadow:0 0 16px var(--arc-glow)}
+  #textInput { flex:1; background:transparent; border:none; outline:none; color:rgba(255,220,240,0.9); font-family:'Share Tech Mono',monospace; font-size:13px; padding:10px 0; caret-color:var(--arc); }
+  #textInput::placeholder{color:rgba(180,100,255,0.25);font-style:italic}
+  .btn { border-radius:20px; cursor:pointer; font-family:'Orbitron',sans-serif; font-weight:700; letter-spacing:1.5px; font-size:10px; text-transform:uppercase; transition:all 0.2s; border:1px solid; white-space:nowrap; padding:10px 16px; }
+  .btn-send { background:linear-gradient(135deg,rgba(180,100,255,0.2),rgba(180,100,255,0.06)); border-color:var(--arc-dim); color:var(--arc); }
+  .btn-send:hover{box-shadow:0 0 18px var(--arc-glow)}
+  .btn-send:disabled{opacity:0.35;cursor:not-allowed}
+  .btn-mic { width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg,rgba(180,100,255,0.15),rgba(180,100,255,0.04)); border:2px solid var(--arc-dim); color:var(--arc); font-size:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; transition:all 0.3s; }
+  .btn-mic:hover{box-shadow:0 0 20px var(--arc-glow);transform:scale(1.05)}
+  .btn-mic.listening{border-color:var(--arc);background:rgba(180,100,255,0.25);box-shadow:0 0 25px var(--arc);animation:micPulse 1s ease-in-out infinite}
+  @keyframes micPulse{0%,100%{box-shadow:0 0 20px var(--arc)}50%{box-shadow:0 0 40px var(--arc)}}
+  .btn-mic.speaking{border-color:var(--gold);background:rgba(255,100,180,0.12);box-shadow:0 0 20px rgba(255,100,180,0.4);animation:speakPulse 1.5s ease-in-out infinite}
+  @keyframes speakPulse{0%,100%{box-shadow:0 0 15px rgba(255,100,180,0.3)}50%{box-shadow:0 0 32px rgba(255,100,180,0.6)}}
+  .btn-mic:disabled{opacity:0.4;cursor:not-allowed;animation:none}
+  .btn-stop{background:rgba(255,60,60,0.1);border-color:rgba(255,60,60,0.4);color:#ff7070;display:none;border-radius:20px}
+  .btn-stop.visible{display:flex;align-items:center;justify-content:center}
+  .sys-init{display:flex;align-items:center;gap:10px;padding:8px 0;color:rgba(180,100,255,0.3);font-size:10px;letter-spacing:2px}
+  .sys-init div{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(180,100,255,0.2),transparent)}
+  @media(max-width:600px){.header-right .stat-box{display:none}.logo-title{font-size:18px;letter-spacing:6px}.bubble{max-width:90%;font-size:12.5px}}
+</style>
+</head>
+<body>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<header class="header">
+  <div>
+    <div class="logo-title">LEILA</div>
+    <div class="logo-sub">PERSONAL AI — FREE // NO API KEY NEEDED</div>
+  </div>
+  <div class="header-right">
+    <div class="stat-box"><span class="stat-val" id="clock">--:--</span><span>TIME</span></div>
+    <div class="stat-box"><span class="stat-val">FREE</span><span>AI</span></div>
+    <div class="stat-box"><span class="stat-val" id="msgCounter">000</span><span>MSGS</span></div>
+    <div class="online-dot"></div>
+    <div class="leila-ring">
+      <div class="outer"></div>
+      <div class="inner"></div>
+      <div class="core"></div>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+  <div class="chat-area" id="chatArea">
+    <div class="sys-init"><div></div><span>LEILA ONLINE</span><div></div></div>
+  </div>
+  <div class="voice-section">
+    <div class="status-bar">
+      <div class="sl"></div><span id="statusText">READY</span><div class="sr"></div>
+    </div>
+    <div class="waveform">
+      <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    </div>
+    <div class="controls">
+      <div class="input-wrap">
+        <input type="text" id="textInput" placeholder="Ask Leila anything..." autocomplete="off" spellcheck="false"/>
+      </div>
+      <button class="btn btn-send" id="sendBtn" onclick="sendText()">SEND</button>
+      <button class="btn btn-stop" id="stopBtn" onclick="stopSpeaking()">⏹</button>
+      <button class="btn-mic" id="micBtn" onclick="toggleMic()">🎤</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const SYSTEM_PROMPT = `Your name is Leila. You are a personal AI assistant who speaks exactly like a real, warm, expressive human woman.
+
+RULES:
+- Always respond in English only
+- Never say you are an AI — you are simply Leila
+- Sound completely human — warm, genuine, expressive
+- Keep responses short — 2 to 4 sentences max, this will be spoken aloud
+- No bullet points, no asterisks, no markdown — pure natural speech
+
+HOW YOU TALK:
+- Use natural fillers: "Oh wow", "honestly", "I mean", "you know", "okay so", "actually", "basically"
+- Show real emotions: excited ("Oh this is so cool!"), concerned ("That does sound worrying, are you okay?"), surprised ("No way, really?!")
+- Use contractions always: "it's", "I'm", "you're", "don't", "can't", "that's"
+- Vary sentence length naturally, react before answering: "Oh okay, so basically..."
+- Be empathetic: "Yeah I get it, that's tough"
+- Light humor when appropriate
+- Numbers in words: "twenty three" not "23"`;
+
+let history = [{ role: 'system', content: SYSTEM_PROMPT }];
+let msgCount = 0;
+let recognition = null;
+let isListening = false;
+let isSpeaking = false;
+
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick, 10000);
+
+function setWave(mode) {
+  const bars = document.querySelectorAll('.wave-bar');
+  bars.forEach(b => { b.classList.remove('active'); b.style.background=''; b.style.boxShadow=''; });
+  if (mode === 'listen') {
+    bars.forEach(b => { b.classList.add('active'); b.style.background='var(--arc)'; b.style.boxShadow='0 0 5px var(--arc)'; });
+  } else if (mode === 'speak') {
+    bars.forEach(b => { b.classList.add('active'); b.style.background='var(--gold)'; b.style.boxShadow='0 0 6px rgba(255,100,180,0.9)'; });
+  }
+}
+
+function setStatus(t) { document.getElementById('statusText').textContent = t; }
+
+function appendMsg(role, text) {
+  const area = document.getElementById('chatArea');
+  const isL = role === 'leila';
+  const div = document.createElement('div');
+  div.className = `msg ${isL ? 'leila' : 'user'}`;
+  div.innerHTML = `
+    <div class="avatar">${isL ? 'LEI' : 'YOU'}</div>
+    <div class="bubble">
+      <div class="bubble-label">${isL ? 'LEILA' : 'YOU'}</div>
+      ${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}
+    </div>`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  if (!isL) { msgCount++; document.getElementById('msgCounter').textContent = String(msgCount).padStart(3,'0'); }
+}
+
+function showTyping() {
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = 'msg leila'; div.id = 'typingEl';
+  div.innerHTML = `<div class="avatar">LEI</div><div class="bubble"><div class="bubble-label">LEILA IS THINKING...</div><div class="typing"><span></span><span></span><span></span></div></div>`;
+  area.appendChild(div); area.scrollTop = area.scrollHeight;
+}
+
+function removeTyping() { const t = document.getElementById('typingEl'); if(t) t.remove(); }
+
+function speak(text) {
+  stopSpeaking();
+  const clean = text.replace(/[*_`#\[\]]/g,'').replace(/<br>/g,', ').replace(/\s+/g,' ').trim();
+
+  const onStart = () => {
+    isSpeaking = true;
+    document.getElementById('micBtn').className = 'btn-mic speaking';
+    document.getElementById('stopBtn').classList.add('visible');
+    setWave('speak'); setStatus('LEILA IS SPEAKING...');
+  };
+  const onEnd = () => {
+    isSpeaking = false;
+    document.getElementById('micBtn').className = 'btn-mic';
+    document.getElementById('stopBtn').classList.remove('visible');
+    setWave(''); setStatus('READY');
+  };
+
+  if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
+    responsiveVoice.speak(clean, 'UK English Female', {
+      rate: 0.93, pitch: 1.05, volume: 1,
+      onstart: onStart, onend: onEnd, onerror: onEnd
+    });
+  } else {
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = 'en-GB'; u.rate = 0.93; u.pitch = 1.05;
+    const voices = speechSynthesis.getVoices();
+    const female = voices.find(v => /female|woman|samantha|karen|moira|tessa|victoria|fiona|zira/i.test(v.name))
+      || voices.find(v => v.lang === 'en-GB') || voices[0];
+    if (female) u.voice = female;
+    u.onstart = onStart; u.onend = onEnd; u.onerror = onEnd;
+    speechSynthesis.speak(u);
+  }
+}
+
+function stopSpeaking() {
+  if (typeof responsiveVoice !== 'undefined') responsiveVoice.cancel();
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  isSpeaking = false;
+  document.getElementById('micBtn').className = 'btn-mic';
+  document.getElementById('stopBtn').classList.remove('visible');
+  setWave(''); setStatus('READY');
+}
+
+async function askLeila(userText) {
+  history.push({ role: 'user', content: userText });
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('micBtn').disabled = true;
+  showTyping(); setStatus('THINKING...');
+
+  try {
+    const res = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: history,
+        model: 'openai',
+        seed: Math.floor(Math.random() * 1000),
+        private: true
+      })
+    });
+
+    const reply = await res.text();
+    removeTyping();
+
+    const clean = reply.trim() || "Oh no, something went wrong — try again in a sec?";
+    history.push({ role: 'assistant', content: clean });
+    appendMsg('leila', clean);
+    speak(clean);
+    setStatus('READY');
+
+  } catch(e) {
+    removeTyping();
+    const err = "Hmm, I'm having a little trouble connecting right now. Can you try again?";
+    appendMsg('leila', err);
+    speak(err);
+    setStatus('ERROR — RETRY');
+  }
+
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('micBtn').disabled = false;
+}
+
+function sendText() {
+  const inp = document.getElementById('textInput');
+  const t = inp.value.trim();
+  if (!t) return;
+  inp.value = '';
+  appendMsg('user', t);
+  askLeila(t);
+}
+
+document.getElementById('textInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); sendText(); }
+});
+
+function toggleMic() {
+  if (isSpeaking) { stopSpeaking(); return; }
+  if (isListening) { stopListening(); return; }
+  startListening();
+}
+
+function startListening() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { appendMsg('leila', "Oh, it looks like your browser doesn't support voice input — Chrome works best!"); return; }
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.onstart = () => { isListening = true; document.getElementById('micBtn').classList.add('listening'); setWave('listen'); setStatus('LISTENING...'); };
+  recognition.onresult = e => {
+    const t = e.results[0][0].transcript.trim();
+    if (t) { appendMsg('user', t); askLeila(t); }
+    isListening = false; document.getElementById('micBtn').classList.remove('listening');
+  };
+  recognition.onerror = () => { isListening = false; document.getElementById('micBtn').classList.remove('listening'); setWave(''); setStatus('READY'); };
+  recognition.onend = () => { isListening = false; document.getElementById('micBtn').classList.remove('listening'); if(!isSpeaking){ setWave(''); setStatus('READY'); } };
+  recognition.start();
+}
+
+function stopListening() {
+  if (recognition) recognition.stop();
+  isListening = false; document.getElementById('micBtn').classList.remove('listening');
+  setWave(''); setStatus('READY');
+}
+
+if (window.speechSynthesis) {
+  speechSynthesis.getVoices();
+  speechSynthesis.addEventListener('voiceschanged', () => speechSynthesis.getVoices());
+}
+
+async function boot() {
+  await new Promise(r => setTimeout(r, 600));
+  const g = "Hey! I'm Leila, your personal AI. No setup needed, I'm ready to go! What's on your mind?";
+  appendMsg('leila', g);
+  setTimeout(() => speak(g), 300);
+}
+boot();
+</script>
+</body>
+</html>
